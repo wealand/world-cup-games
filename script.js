@@ -1,68 +1,74 @@
 document.addEventListener('DOMContentLoaded', () => {
-    // --- START OF CONFIGURATION ---
-    // 1. Replace "YOUR_API_KEY" with the key you got from api-football.com
-    const API_KEY = "4538a2d783af1b3db4eb87c6d7431664"; 
-
-    // 2. Replace 1 with the real League ID for the World Cup
-    const LEAGUE_ID = 39; 
-    // --- END OF CONFIGURATION ---
-
-
     const gameContainer = document.getElementById('game-container');
-    const today = new Date().toISOString().split('T')[0];
-    const season = new Date().getFullYear();
+
+    const formatDate = (date) => {
+        const y = date.getFullYear();
+        const m = String(date.getMonth() + 1).padStart(2, '0');
+        const d = String(date.getDate()).padStart(2, '0');
+        return `${y}${m}${d}`;
+    };
 
     const fetchGames = async () => {
+        const today = new Date();
+        // The API returns upcoming games, so we will filter for today's matches.
+        // We fetch for the current date to get today's schedule.
+        const apiUrl = `http://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world/scoreboard?dates=${formatDate(today)}`;
 
-        const fixturesUrl = `https://v3.football.api-sports.io/fixtures?league=${LEAGUE_ID}&season=${season}&date=${today}`;
-        
         try {
-            const response = await fetch(fixturesUrl, {
-                "method": "GET",
-                "headers": {
-                    "x-rapidapi-host": "v3.football.api-sports.io",
-                    "x-rapidapi-key": API_KEY
-                }
-            });
-
+            const response = await fetch(apiUrl);
             if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
+                // If today fails, try fetching the generic endpoint which gives upcoming games
+                const genericResponse = await fetch('http://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world/scoreboard');
+                if(!genericResponse.ok) {
+                    throw new Error(`HTTP error! status: ${genericResponse.status}`);
+                }
+                const data = await genericResponse.json();
+                renderGames(data.events, true); // Pass a flag to indicate these are upcoming, not necessarily today
+            } else {
+                 const data = await response.json();
+                 renderGames(data.events, false);
             }
-
-            const data = await response.json();
-
-            if (data.errors && Object.keys(data.errors).length > 0) {
-                let errorMsg = Object.values(data.errors).join(', ');
-                throw new Error(`API Error: ${errorMsg}`);
-            }
-            
-            renderGames(data.response || []);
-
         } catch (error) {
             console.error("Error fetching game data:", error);
-            gameContainer.innerHTML = `<div class="game-card">Could not retrieve game data. <br><br>Error: ${error.message}</div>`;
+            gameContainer.innerHTML = `<div class="game-card">Could not retrieve game data. The API may be unavailable or there are no upcoming games.</div>`;
         }
     };
 
-    const renderGames = (games) => {
+    const renderGames = (events, isUpcoming) => {
         gameContainer.innerHTML = '';
 
-        if (games.length === 0) {
-            gameContainer.innerHTML = '<div class="game-card">No World Cup matches scheduled for today.</div>';
+        if (events.length === 0) {
+            const message = isUpcoming ? "No upcoming World Cup matches found." : "No World Cup matches scheduled for today.";
+            gameContainer.innerHTML = `<div class="game-card">${message}</div>`;
             return;
         }
 
-        games.forEach(match => {
+        const todayDate = new Date().toDateString();
+
+        const todaysEvents = isUpcoming 
+            ? events 
+            : events.filter(event => new Date(event.date).toDateString() === todayDate);
+
+        if (todaysEvents.length === 0) {
+             gameContainer.innerHTML = '<div class="game-card">No World Cup matches scheduled for today.</div>';
+            return;
+        }
+
+        todaysEvents.forEach(event => {
             const gameCard = document.createElement('div');
             gameCard.className = 'game-card';
 
-            const homeTeam = match.teams.home;
-            const awayTeam = match.teams.away;
-            const fixture = match.fixture;
-
-            const gameTime = new Date(fixture.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-            const location = `${fixture.venue.city}, ${fixture.venue.name}`;
-            const timezone = fixture.timezone;
+            const competition = event.competitions[0];
+            const homeTeam = competition.competitors.find(c => c.homeAway === 'home').team;
+            const awayTeam = competition.competitors.find(c => c.homeAway === 'away').team;
+            
+            const gameTime = new Date(event.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            const location = `${competition.venue.address.city}, ${competition.venue.fullName}`;
+            
+            let analysis = "No odds available for this match.";
+            if (competition.odds && competition.odds[0]) {
+                analysis = `Favored: ${competition.odds[0].details}`;
+            }
 
             gameCard.innerHTML = `
                 <div class="game-time">${gameTime}</div>
@@ -78,7 +84,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     </div>
                 </div>
                 <div class="location-info">
-                    <strong>Location:</strong> ${location} (${timezone})
+                    <strong>Location:</strong> ${location}
+                </div>
+                <div class="analysis">
+                    <strong>Analysis:</strong> ${analysis}
                 </div>
             `;
             gameContainer.appendChild(gameCard);
