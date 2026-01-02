@@ -4,7 +4,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const API_KEY = "4538a2d783af1b3db4eb87c6d7431664"; 
 
     // 2. Replace 1 with the real League ID for the World Cup
-    const LEAGUE_ID = 1; 
+    const LEAGUE_ID = 39; 
     // --- END OF CONFIGURATION ---
 
 
