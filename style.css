@@ -33,9 +33,48 @@ header h1 {
 #game-container {
     width: 100%;
     max-width: 800px;
-    display: grid;
-    grid-template-columns: 1fr;
+    display: flex;
+    flex-direction: column;
     gap: 20px;
+}
+
+.filters {
+    width: 100%;
+    max-width: 800px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 20px;
+    background-color: var(--card-background);
+    padding: 15px;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.filters label {
+    font-weight: bold;
+    color: var(--accent-color);
+}
+
+#venue-filter {
+    padding: 8px 12px;
+    border-radius: 4px;
+    background-color: var(--background-color);
+    color: var(--text-color);
+    border: 1px solid var(--accent-color);
+    font-size: 1rem;
+    cursor: pointer;
+}
+
+.date-header {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: var(--accent-color);
+    border-bottom: 2px solid var(--accent-color);
+    margin: 20px 0 10px;
+    padding-bottom: 5px;
+    width: 100%;
 }
 
 .loading {
