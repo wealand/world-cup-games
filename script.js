@@ -4,9 +4,8 @@ document.addEventListener('DOMContentLoaded', () => {
     let allEvents = [];
 
     const fetchGames = async () => {
-        const proxyUrl = 'https://corsproxy.io/?';
         // Fetch the entire tournament schedule
-        const apiUrl = `${proxyUrl}http://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world/scoreboard?dates=20260611-20260719`;
+        const apiUrl = `https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world/scoreboard?dates=20260611-20260719`;
 
         try {
             const response = await fetch(apiUrl);
@@ -19,8 +18,14 @@ document.addEventListener('DOMContentLoaded', () => {
             populateVenues(allEvents);
             renderGames(allEvents);
         } catch (error) {
-            console.error("Error fetching game data:", error);
-            gameContainer.innerHTML = `<div class="game-card">Could not retrieve game data. The API may be unavailable or there are no upcoming games.</div>`;
+            console.warn("Error fetching live game data (likely CORS or network). Falling back to local tournament schedule:", error);
+            if (typeof WORLD_CUP_DATA !== 'undefined') {
+                allEvents = WORLD_CUP_DATA;
+                populateVenues(allEvents);
+                renderGames(allEvents);
+            } else {
+                gameContainer.innerHTML = `<div class="game-card">Could not retrieve game data. The API may be unavailable or there are no upcoming games.</div>`;
+            }
         }
     };
 
